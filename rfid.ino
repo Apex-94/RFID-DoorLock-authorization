@@ -1,3 +1,4 @@
+
 #include <EEPROM.h>     // We are going to read and write TAG's UIDs from/to EEPROM
 #include <SPI.h>        // RC522 Module uses SPI protocol
 #include <MFRC522.h>  // Library for Mifare RC522 Devices
@@ -23,10 +24,10 @@ boolean programMode = false;  // initialize programming mode to false
 boolean replaceMaster = false;
 
 int successRead;    // Variable integer to keep if we have Successful Read from Reader
-//FOR BYTE
-byte storedCard[10];   // Store ID
-byte readCard[10];   //  read from RFID Module
-byte masterCard[10];   // Store master card
+//FOR BYTE 
+byte storedCard[4];   // Store ID
+byte readCard[4];   //  read from RFID Module
+byte masterCard[4];   // Store master card
 //FOR 7 BYTE
 byte storedCard7[7];   // Store ID
 byte readCard7[7];   //  read from RFID Module
@@ -35,7 +36,7 @@ byte masterCard7[7];   // Store master card
 #define SS_PIN 10
 #define RST_PIN 9
 MFRC522 mfrc522(SS_PIN, RST_PIN); // Create MFRC522 instance.
-void initialLED_config(/* arguments */) {
+void initialLED_config(/* arguments */){
   digitalWrite(redLed, LED_OFF);
   digitalWrite(greenLed, LED_OFF);
   digitalWrite(yellowLed, LED_OFF);
@@ -79,18 +80,18 @@ void setup() {
       Serial.println(F("Starting Wiping EEPROM"));
       for (int i = 0; i < EEPROM.length(); i++) {    //Loop end of EEPROM address
         if (EEPROM.read(i) == 0) { //if it is already empty get out of the wipe loop
-          break;
+          break;            
         }
         else {
           /*
-             Syntax EEPROM.write(addr, val);
-             EEPROM.length() is used to iterate over the memory
-             Offical description
-             EEPROM.length()
-            This function returns an unsigned int containing the number of cells in the
-            EEPROM. Not all devices have the same size EEPROM,
+           * Syntax EEPROM.write(addr, val);
+           * EEPROM.length() is used to iterate over the memory
+           * Offical description
+           * EEPROM.length()
+            This function returns an unsigned int containing the number of cells in the 
+            EEPROM. Not all devices have the same size EEPROM, 
             this can be useful for writing code portable to different Arduinos.
-          */
+           */
           EEPROM.write(i, 0);
         }
       }
@@ -102,7 +103,7 @@ void setup() {
       digitalWrite(redLed, LED_OFF); // Changed the ON status from line 70 to OFF as the WipeMode was cancelled
     }
   }
-  if (EEPROM.read(1) != 143) {
+  if (EEPROM.read(1) != 01) {
     Serial.println(F("No Master Card is Defined"));
     Serial.println(F("Scan A TAG to Define as Master Card"));
     do {
@@ -113,16 +114,21 @@ void setup() {
       delay(200);
     }
     while (!successRead);                  // Program will not go further while you not get a successful read
-    for ( int j = 0; j < 4; j++ ) {        // Loop 4 times
+    //To Read the rfid card and check wether the id tag is of 4byte or 7byte
+    for (int i = 0; i < mfrc522.uid.size; i++) {
+    readCard[i] = mfrc522.uid.uidByte[i];
+    Serial.print(readCard[i], HEX);
+  }
+    for ( int j = 0; j < mfrc522.uid.size; j++ ) {        // Loop 4 times
       EEPROM.write( 2 + j, readCard[j] );  // Write scanned PICC's UID to EEPROM, start from address 3
     }
-    EEPROM.write(1, 143);                  // Write to EEPROM we defined Master Card.
+    EEPROM.write(1, 01);                  // Write to EEPROM we defined Master Card.
     Serial.println(F("Master Card is Defined Sucessfully"));
   }
   Serial.println(F("-------------------"));
   Serial.println(F("Master Card's UID ="));
-  for ( int i = 0; i < 4; i++ ) {          // Read Master Card's UID from EEPROM
-    masterCard[i] = EEPROM.read(2 + i);    // Write it to masterCard
+  for ( int i = 0; i < mfrc522.uid.size; i++ ) {// Read Master Card's UID from EEPROM
+    masterCard[i] = EEPROM.read(2 + i);    
     Serial.print(masterCard[i], HEX);
   }
   Serial.println("");
@@ -167,7 +173,7 @@ void loop () {
 
 
       if (digitalRead(wipeMode) == LOW) {
-        EEPROM.write(1, 0);                  // Reset Magic Number.
+        EEPROM.write(0, 0);                  // Reset Number.
         Serial.println(F("Restart device to re-program the Master Card"));
         while (1);
       }
@@ -206,11 +212,11 @@ void loop () {
   else {
     if ( isMaster(readCard)) {    // If scanned card == Master Card Enter program mode
       programMode = true;
-      Serial.println(F("konichiwa goshujinsama - Entered Program Mode"));
+      Serial.println(F(" Entered Program Mode"));
       int count = EEPROM.read(0);   // Read the first Byte of EEPROM that
       Serial.print(F("I have "));     // stores the number of ID's in EEPROM
       Serial.print(count);
-      Serial.print(F(" record(s) on EEPROM"));
+      Serial.print(F(" record on EEPROM"));
       Serial.println("");
       Serial.println(F("Scan a TAG to ADD or REMOVE to EEPROM"));
       Serial.println(F("Scan Master Card again to Exit Program Mode"));
@@ -230,15 +236,15 @@ void loop () {
 }
 void LED_eepromwipe()
 {
-  digitalWrite(redLed, LED_OFF);  // visualize successful wipe
-  delay(200);
-  digitalWrite(redLed, LED_ON);
-  delay(200);
-  digitalWrite(redLed, LED_OFF);
-  delay(200);
-  digitalWrite(redLed, LED_ON);
-  delay(200);
-  digitalWrite(redLed, LED_OFF);
+digitalWrite(redLed, LED_OFF);  // visualize successful wipe
+delay(200);
+digitalWrite(redLed, LED_ON);
+delay(200);
+digitalWrite(redLed, LED_OFF);
+delay(200);
+digitalWrite(redLed, LED_ON);
+delay(200);
+digitalWrite(redLed, LED_OFF);
 }
 // Access auth_sucess
 void auth_sucess (int setDelay) {
@@ -272,7 +278,7 @@ int get_ID() {
   // I think we should assume every TAGS as they have 4 byte UID
   // Until we support 7 byte TAGS
   Serial.println(F("Scanned TAG's UID:"));
-  for (int i = 0; i < 4; i++) {  //
+  for (int i = 0; i < mfrc522.uid.size; i++) {  //
     readCard[i] = mfrc522.uid.uidByte[i];
     Serial.print(readCard[i], HEX);
   }
@@ -329,22 +335,50 @@ void normal_Mode () {
 
 //Read an ID from EEPROM
 void read_ID( int number ) {
-  int start = (number * 4 ) + 2;    // Figure out starting position
-  for ( int i = 0; i < 4; i++ ) {     // Loop 4 times to get the 4 Bytes
-    storedCard[i] = EEPROM.read(start + i);   // Assign values read from EEPROM to array
+  int getUidType=0;
+  for (int i = 0; i < mfrc522.uid.size; i++)
+  {
+    getUidType=getUidType+1;
+    }
+    if(getUidType==4){
+      int start = (number * 4 ) + 2;    // Figure out starting position
+      for ( int i = 0; i < 4; i++ ) {     // Loop 4 times to get the 4 Bytes
+      storedCard[i] = EEPROM.read(start + i);   // Assign values read from EEPROM to array
   }
+                    }
+    else
+    {
+      int start = (number * 7 ) + 2;    // Figure out starting position
+      for ( int i = 0; i < 7; i++ ) {     // Loop74 times to get the74 Bytes
+      storedCard[i] = EEPROM.read(start + i);   // Assign values read from EEPROM to array
+  }
+     }
 }
+  
 
 // Add ID to EEPROM
 void write_ID( byte a[] ) {
+  int getUidType=0;
   if ( !find_ID( a ) ) {     // Before we write to the EEPROM, check to see if we have seen this card before!
     int num = EEPROM.read(0);     // Get the numer of used spaces, position 0 stores the number of ID cards
-    int start = ( num * 4 ) + 6;  // Figure out where the next slot starts
-    num++;                // Increment the counter by one
-    EEPROM.write( 0, num );     // Write the new count to the counter
+    if(getUidType==4){
+        int start = ( num * 4 ) + 6;  // Figure out where the next slot starts
+        num++;                // Increment the counter by one
+        EEPROM.write( 0, num );     // Write the new count to the counter
     for ( int j = 0; j < 4; j++ ) {   // Loop 4 times
-      EEPROM.write( start + j, a[j] );  // Write the array values to EEPROM in the right position
+        EEPROM.write( start + j, a[j] );  // Write the array values to EEPROM in the right position
     }
+      }
+     else
+     {    
+      int start = ( num * 7 ) + 6;  // Figure out where the next slot starts
+      num++;                // Increment the counter by one
+      EEPROM.write( 0, num );     // Write the new count to the counter
+      for ( int j = 0; j < 7; j++ ) {   // Loop 4 times
+        EEPROM.write( start + j, a[j] );  // Write the array values to EEPROM in the right position
+    }
+      }
+
     LED_successWriteConfig();
     Serial.println(F("Succesfully added ID to EEPROM"));
   }
@@ -356,6 +390,7 @@ void write_ID( byte a[] ) {
 
 //remove id from eeprom
 void delete_ID( byte a[] ) {
+  int getUidType=0;
   if ( !find_ID( a ) ) {     // Before we delete from the EEPROM, check to see if we have this card!
     LED_failedWriteConfig();      // If not
     Serial.println(F("Failed! There is something wrong with ID or bad EEPROM"));
@@ -367,7 +402,9 @@ void delete_ID( byte a[] ) {
     int looping;    // The number of times the loop repeats
     int j;
     int count = EEPROM.read(0); // Read the first Byte of EEPROM that stores number of cards
-    slot = find_slot( a );   // Figure out the slot number of the card to delete
+    if(getUidType==4){
+
+      slot = find_slot( a );   // Figure out the slot number of the card to delete
     start = (slot * 4) + 2;
     looping = ((num - slot) * 4);
     num--; //counter --
@@ -377,7 +414,25 @@ void delete_ID( byte a[] ) {
     }
     for ( int k = 0; k < 4; k++ ) {         // Shifting loop
       EEPROM.write( start + j + k, 0);
+
+      
     }
+      }
+   else{
+    slot = find_slot( a );   // Figure out the slot number of the card to delete
+    start = (slot * 7) + 2;
+    looping = ((num - slot) * 7);
+    num--; //counter --
+    EEPROM.write( 0, num );   // Write the new count to the counter
+    for ( j = 0; j < looping; j++ ) {         // Loop the card shift times
+      EEPROM.write( start + j, EEPROM.read(start + 7 + j));   // Shift the array values to 4 places earlier in the EEPROM
+    }
+    for ( int k = 0; k < 7; k++ ) {         // Shifting loop
+      EEPROM.write( start + j + k, 0);
+    }
+    }  
+    
+    
     LED_successDeleteConfig();
     Serial.println(F("Succesfully removed ID from EEPROM"));
   }
@@ -387,7 +442,7 @@ void delete_ID( byte a[] ) {
 boolean check_TwoBYT ( byte a[], byte b[] ) {
   if ( a[0] != NULL )       // Make sure there is something in the array first
     match = true;       // Assume they match at first
-  for ( int k = 0; k < 4; k++ ) {   // Loop 4 times
+  for ( int k = 0; k < mfrc522.uid.size; k++ ) {   // Loop 4 times
     if ( a[k] != b[k] )     // IF a != b then set match = false, one fails, all fail
       match = false;
   }
