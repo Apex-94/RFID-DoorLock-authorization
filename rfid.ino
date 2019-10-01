@@ -24,10 +24,10 @@ boolean programMode = false;  // initialize programming mode to false
 boolean replaceMaster = false;
 
 int successRead;    // Variable integer to keep if we have Successful Read from Reader
-//FOR BYTE 
-byte storedCard[4];   // Store ID
-byte readCard[4];   //  read from RFID Module
-byte masterCard[4];   // Store master card
+//FOR BYTE
+byte storedCard[10];   // Store ID
+byte readCard[10];   //  read from RFID Module
+byte masterCard[10];   // Store master card
 //FOR 7 BYTE
 byte storedCard7[7];   // Store ID
 byte readCard7[7];   //  read from RFID Module
@@ -36,7 +36,7 @@ byte masterCard7[7];   // Store master card
 #define SS_PIN 10
 #define RST_PIN 9
 MFRC522 mfrc522(SS_PIN, RST_PIN); // Create MFRC522 instance.
-void initialLED_config(/* arguments */){
+void initialLED_config(/* arguments */) {
   digitalWrite(redLed, LED_OFF);
   digitalWrite(greenLed, LED_OFF);
   digitalWrite(yellowLed, LED_OFF);
@@ -80,18 +80,18 @@ void setup() {
       Serial.println(F("Starting Wiping EEPROM"));
       for (int i = 0; i < EEPROM.length(); i++) {    //Loop end of EEPROM address
         if (EEPROM.read(i) == 0) { //if it is already empty get out of the wipe loop
-          break;            
+          break;
         }
         else {
           /*
-           * Syntax EEPROM.write(addr, val);
-           * EEPROM.length() is used to iterate over the memory
-           * Offical description
-           * EEPROM.length()
-            This function returns an unsigned int containing the number of cells in the 
-            EEPROM. Not all devices have the same size EEPROM, 
+             Syntax EEPROM.write(addr, val);
+             EEPROM.length() is used to iterate over the memory
+             Offical description
+             EEPROM.length()
+            This function returns an unsigned int containing the number of cells in the
+            EEPROM. Not all devices have the same size EEPROM,
             this can be useful for writing code portable to different Arduinos.
-           */
+          */
           EEPROM.write(i, 0);
         }
       }
@@ -231,15 +231,15 @@ void loop () {
 }
 void LED_eepromwipe()
 {
-digitalWrite(redLed, LED_OFF);  // visualize successful wipe
-delay(200);
-digitalWrite(redLed, LED_ON);
-delay(200);
-digitalWrite(redLed, LED_OFF);
-delay(200);
-digitalWrite(redLed, LED_ON);
-delay(200);
-digitalWrite(redLed, LED_OFF);
+  digitalWrite(redLed, LED_OFF);  // visualize successful wipe
+  delay(200);
+  digitalWrite(redLed, LED_ON);
+  delay(200);
+  digitalWrite(redLed, LED_OFF);
+  delay(200);
+  digitalWrite(redLed, LED_ON);
+  delay(200);
+  digitalWrite(redLed, LED_OFF);
 }
 // Access auth_sucess
 void auth_sucess (int setDelay) {
