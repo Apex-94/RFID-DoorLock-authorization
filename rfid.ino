@@ -1,4 +1,3 @@
-
 #include <EEPROM.h>     // We are going to read and write TAG's UIDs from/to EEPROM
 #include <SPI.h>        // RC522 Module uses SPI protocol
 #include <MFRC522.h>  // Library for Mifare RC522 Devices
@@ -17,17 +16,17 @@
 #define yellowLed 5
 
 #define relay 4     // Set Relay Pin
-#define wipeB 3     // Button pin for WipeMode
+#define wipeMode 3     // Button pin for WipeMode
 
 boolean match = false;          // initialize card match to false
 boolean programMode = false;  // initialize programming mode to false
 boolean replaceMaster = false;
 
 int successRead;    // Variable integer to keep if we have Successful Read from Reader
-//FOR BYTE 
-byte storedCard[4];   // Store ID
-byte readCard[4];   //  read from RFID Module
-byte masterCard[4];   // Store master card
+//FOR BYTE
+byte storedCard[10];   // Store ID
+byte readCard[10];   //  read from RFID Module
+byte masterCard[10];   // Store master card
 //FOR 7 BYTE
 byte storedCard7[7];   // Store ID
 byte readCard7[7];   //  read from RFID Module
@@ -36,7 +35,7 @@ byte masterCard7[7];   // Store master card
 #define SS_PIN 10
 #define RST_PIN 9
 MFRC522 mfrc522(SS_PIN, RST_PIN); // Create MFRC522 instance.
-void initialLED_config(/* arguments */){
+void initialLED_config(/* arguments */) {
   digitalWrite(redLed, LED_OFF);
   digitalWrite(greenLed, LED_OFF);
   digitalWrite(yellowLed, LED_OFF);
@@ -55,7 +54,7 @@ void setup() {
   pinMode(redLed, OUTPUT);
   pinMode(greenLed, OUTPUT);
   pinMode(yellowLed, OUTPUT);
-  pinMode(wipeB, INPUT_PULLUP);   // Enable pin's pull up resistor
+  pinMode(wipeMode, INPUT_PULLUP);   // Enable pin's pull up resistor
   pinMode(relay, OUTPUT);
   digitalWrite(relay, HIGH);
   initialLED_config();
@@ -66,27 +65,41 @@ void setup() {
   Serial.println(F("Rfid auth"));
   showRFIDdetails();
   //Wipe Code if Button Pressed
-  if (digitalRead(wipeB) == LOW) {  // LOW BUTTON //inbuilt function
-    digitalWrite(redLed, LED_ON);
+  if (digitalRead(wipeMode) == LOW) {  //Reads the value from a specified digital pin, either HIGH or LOW.
+    digitalWrite(redLed, LED_ON); // Lights the led if the above condition is satisfied
+    /*strings ends up getting stored in RAM by default The F() macro makes sure they stay in Flash memory.
+      Just an optimization done to make sure it doesnt end up using the ram insted.
+      Flash memory in this case is the EEPROM of size 1MB
+    */
     Serial.println(F("Wipe Button is Pressed"));
     Serial.println(F("You have 15 secs to Cancel the Command"));
     Serial.println(F("This will be delete all records and cannot be undone"));
     delay(15000);
-    if (digitalRead(wipeB) == LOW) {    //if button still pressed
+    if (digitalRead(wipeMode) == LOW) {    //if button still pressed
       Serial.println(F("Starting Wiping EEPROM"));
-      for (int x = 0; x < EEPROM.length(); x = x + 1) {    //Loop end of EEPROM address
-        if (EEPROM.read(x) == 0) {              //If EEPROM address 0
+      for (int i = 0; i < EEPROM.length(); i++) {    //Loop end of EEPROM address
+        if (EEPROM.read(i) == 0) { //if it is already empty get out of the wipe loop
+          break;
         }
         else {
-          EEPROM.write(x, 0);       // if not write 0 to clear, it takes 3.3mS
+          /*
+             Syntax EEPROM.write(addr, val);
+             EEPROM.length() is used to iterate over the memory
+             Offical description
+             EEPROM.length()
+            This function returns an unsigned int containing the number of cells in the
+            EEPROM. Not all devices have the same size EEPROM,
+            this can be useful for writing code portable to different Arduinos.
+          */
+          EEPROM.write(i, 0);
         }
       }
       Serial.println(F("EEPROM Successfully Wiped"));
-      LED_eepromwipe();
+      LED_eepromwipe(); // Call the function that will disply the led combination for wipeMode
     }
     else {
       Serial.println(F("Wiping Cancelled"));
-      digitalWrite(redLed, LED_OFF);
+      digitalWrite(redLed, LED_OFF); // Changed the ON status from line 70 to OFF as the WipeMode was cancelled
     }
   }
   if (EEPROM.read(1) != 143) {
@@ -124,7 +137,7 @@ void setup() {
 void loop () {
   do {
     successRead = get_ID();  // sets successRead to 1 when we get read from reader otherwise 0
-    if (digitalRead(wipeB) == LOW) {
+    if (digitalRead(wipeMode) == LOW) {
       digitalWrite(redLed, LED_ON);
       digitalWrite(greenLed, LED_OFF);
       digitalWrite(yellowLed, LED_OFF);
@@ -153,7 +166,7 @@ void loop () {
 
 
 
-      if (digitalRead(wipeB) == LOW) {
+      if (digitalRead(wipeMode) == LOW) {
         EEPROM.write(1, 0);                  // Reset Magic Number.
         Serial.println(F("Restart device to re-program the Master Card"));
         while (1);
@@ -217,15 +230,15 @@ void loop () {
 }
 void LED_eepromwipe()
 {
-digitalWrite(redLed, LED_OFF);  // visualize successful wipe
-delay(200);
-digitalWrite(redLed, LED_ON);
-delay(200);
-digitalWrite(redLed, LED_OFF);
-delay(200);
-digitalWrite(redLed, LED_ON);
-delay(200);
-digitalWrite(redLed, LED_OFF);
+  digitalWrite(redLed, LED_OFF);  // visualize successful wipe
+  delay(200);
+  digitalWrite(redLed, LED_ON);
+  delay(200);
+  digitalWrite(redLed, LED_OFF);
+  delay(200);
+  digitalWrite(redLed, LED_ON);
+  delay(200);
+  digitalWrite(redLed, LED_OFF);
 }
 // Access auth_sucess
 void auth_sucess (int setDelay) {
