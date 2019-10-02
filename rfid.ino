@@ -18,7 +18,26 @@
 
 #define relay 4     // Set Relay Pin
 #define wipeMode 3     // Button pin for WipeMode
+//ADDDED php      support
+#include <Ethernet.h>
+#define powerPin    10
+#define doorPin     11
 
+byte mac[] = { 0x00, 0x00, 0x5E, 0x00, 0x01, 0xAA };
+byte ip[] = { 192, 168, 2, 9 };
+byte gateway[] = { 192, 168, 2, 254 };
+byte subnet[] = { 255, 255, 255, 0 };
+byte server[] = { 192, 168, 2, 148 };
+
+Client client(server, 80);
+
+int DO_RESET_ETH_SHIELD = 8;  // A delayed reset for a hardware issue
+
+boolean match = false;
+
+byte readCard[6];    // Stores an ID read from the RFID reader
+byte checksum = 0;   // Stores the checksum to verify the ID
+/////PHP    TOP
 boolean match = false;          // initialize card match to false
 boolean programMode = false;  // initialize programming mode to false
 boolean replaceMaster = false;
@@ -51,6 +70,13 @@ void set_protocall()
 
 //Setup
 void setup() {
+  ///setup for php
+   pinMode(powerPin, OUTPUT);      // Connected to Blue on tri-color LED to indicate reader is ready
+ pinMode(doorPin, OUTPUT);       // Connected to relay to activate the door lock
+ Serial.begin(9600);             // Connect to the serial port
+ init_ethernet();
+ Ethernet.begin(mac, ip);
+ //php setup      ends    here
   //Arduino Pin Configuration
   pinMode(redLed, OUTPUT);
   pinMode(greenLed, OUTPUT);
